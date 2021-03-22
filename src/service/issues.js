@@ -1,13 +1,6 @@
 const winston = require('winston');
 const issueDao = require('../model/issues');
-
-const DUMMY_ISSUE = {
-  _id: '603c9813eb0dec3a97b29be7',
-  title: 'Issue 1',
-  description: 'string',
-  state: 'open',
-  __v: 0
-};
+const issueState = require('../model/issueState');
 
 const logger = winston.createLogger({
   level: 'info',
@@ -23,7 +16,10 @@ const logger = winston.createLogger({
 
 const createIssue = async (issue) => {
   try {
-    return await issueDao.create(issue);
+    return await issueDao.create({
+      ...issue,
+      state: issueState.OPEN
+    });
   } catch (err) {
     logger.error({
       message: 'Data Access Error',
@@ -33,29 +29,21 @@ const createIssue = async (issue) => {
   }
 };
 
-const readIssues = () => {
-  return new Promise((resolve, reject) => {
-    resolve([DUMMY_ISSUE]);
-  });
+const readIssues = async () => {
+  return await issueDao.find().exec();
 };
 
-const readIssuesById = (id) => {
-  return new Promise((resolve, reject) => {
-    resolve(DUMMY_ISSUE);
-  });
+const readIssuesById = async (id) => {
+  return await issueDao.findById(id).exec();
 };
 
-const changeSate = (id, state) => {
-  return readIssuesById(id)
-    .then(issue => {
-      if (!isStateChangeAllowed(issue.state, state)) {
-        logger.info(`Invalid State Change ${issue.state} => ${state}`);
-        throw new Error({ msg: `Invalid State ohange ${issue.state} => ${state}` });
-      }
-      return issue;
-    }).then(issue => {
-      return DUMMY_ISSUE;
-    });
+const changeSate = async (id, state) => {
+  const currentIssue = await readIssuesById(id);
+  if (!isStateChangeAllowed(currentIssue.state, state)) {
+    logger.info(`Invalid State Change ${currentIssue.state} => ${state}`);
+    throw new Error({ msg: `Invalid State ohange ${currentIssue.state} => ${state}` });
+  }
+  return await issueDao.findByIdAndUpdate(id, { state: state }, { new: true }).exec();
 };
 
 const isStateChangeAllowed = (from, to) => {
@@ -63,13 +51,13 @@ const isStateChangeAllowed = (from, to) => {
 };
 
 const changeStateToInProgress = (id) => {
-  return changeSate(id, 'in progress');
+  return changeSate(id, issueState.IN_PROGRESS);
 };
 const changeStateToResolved = (id) => {
-  return changeSate(id, 'resolved');
+  return changeSate(id, issueState.RESOLVED);
 };
 const changeStateToClosed = (id) => {
-  return changeSate(id, 'closed');
+  return changeSate(id, issueState.CLOSED);
 };
 
 module.exports = {
