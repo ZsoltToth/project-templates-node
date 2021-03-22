@@ -1,4 +1,5 @@
 const winston = require('winston');
+const issueDao = require('../model/issues');
 
 const DUMMY_ISSUE = {
   _id: '603c9813eb0dec3a97b29be7',
@@ -20,10 +21,16 @@ const logger = winston.createLogger({
   ]
 });
 
-const createIssue = (issue) => {
-  return new Promise((resolve, reject) => {
-    resolve(DUMMY_ISSUE);
-  });
+const createIssue = async (issue) => {
+  try {
+    return await issueDao.create(issue);
+  } catch (err) {
+    logger.error({
+      message: 'Data Access Error',
+      error: err
+    });
+    return err;
+  }
 };
 
 const readIssues = () => {

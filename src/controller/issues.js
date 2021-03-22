@@ -16,6 +16,10 @@ const logger = winston.createLogger({
 
 exports.createIssue = (req, res, next) => {
   if (!validationResult(req).isEmpty()) {
+    logger.error({
+      message: 'Invalid Request',
+      request: req
+    });
     res.status(400).send({ errors: validationResult(req).array() });
     return;
   }
